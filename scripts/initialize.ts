@@ -2,7 +2,9 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenFaucet } from "../target/types/token_faucet";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import * as fs from "fs";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 // Initialize the faucet with devnet USDC mint
 async function main() {
@@ -24,7 +26,6 @@ async function main() {
     "7ggkvgP7jijLpQBV5GXcqugTMrc2JqDi9tiCH36SVg7A"
   );
   console.log("USDC mint address:", usdcMint.toString());
-  fs.writeFileSync("usdc-mint.txt", usdcMint.toString());
 
   // Derive PDA addresses
   const [faucetStateAddress] = anchor.web3.PublicKey.findProgramAddressSync(

@@ -1,6 +1,9 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TokenFaucet } from "../target/types/token_faucet";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 // Deposit SOL into the faucet
 async function main() {
@@ -49,10 +52,23 @@ async function main() {
 
   // Define deposit amount (default to 1 SOL)
   const args = process.argv.slice(2);
-  const depositAmount =
-    args.length > 0
-      ? parseFloat(args[0]) * anchor.web3.LAMPORTS_PER_SOL
-      : 1 * anchor.web3.LAMPORTS_PER_SOL;
+  let depositAmount: number;
+
+  if (args.length === 0) {
+    console.log("No amount specified. Using default amount of 1 SOL.");
+    depositAmount = anchor.web3.LAMPORTS_PER_SOL;
+  } else {
+    const amount = parseFloat(args[0]);
+    if (isNaN(amount) || amount <= 0) {
+      console.error(
+        "Error: Please provide a valid positive number for the deposit amount."
+      );
+      console.log("Usage: ts-node scripts/deposit_sol.ts [amount]");
+      console.log("Example: ts-node scripts/deposit_sol.ts 2.5");
+      process.exit(1);
+    }
+    depositAmount = amount * anchor.web3.LAMPORTS_PER_SOL;
+  }
 
   console.log(
     `Depositing ${depositAmount / anchor.web3.LAMPORTS_PER_SOL} SOL...`

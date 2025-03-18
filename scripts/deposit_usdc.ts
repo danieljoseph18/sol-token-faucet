@@ -9,7 +9,9 @@ import {
   mintTo,
   getMint,
 } from "@solana/spl-token";
-import * as fs from "fs";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 // Deposit USDC into the faucet
 async function main() {
@@ -21,35 +23,14 @@ async function main() {
   const program = anchor.workspace.TokenFaucet as Program<TokenFaucet>;
   console.log("Program ID:", program.programId.toString());
 
-  // Load the admin keypair
-  let admin: anchor.web3.Keypair;
-  try {
-    const adminKeypairFile = fs.readFileSync("admin-keypair.json", "utf-8");
-    const adminKeypairData = JSON.parse(adminKeypairFile);
-    admin = anchor.web3.Keypair.fromSecretKey(new Uint8Array(adminKeypairData));
-    console.log("Admin pubkey:", admin.publicKey.toString());
-  } catch (e) {
-    console.error(
-      "Admin keypair not found. Please run initialize script first."
-    );
-    return;
-  }
+  // Get the admin from the configured keypair
+  const admin = provider.wallet.payer;
+  console.log("Admin pubkey:", admin.publicKey.toString());
 
   // Load or create USDC mint
-  let usdcMint: anchor.web3.PublicKey;
-  try {
-    const usdcMintStr = fs.readFileSync("usdc-mint.txt", "utf-8").trim();
-    usdcMint = new anchor.web3.PublicKey(usdcMintStr);
-    console.log("USDC mint:", usdcMint.toString());
-
-    // Verify the mint exists
-    await getMint(provider.connection, usdcMint);
-  } catch (e) {
-    console.error(
-      "USDC mint not found or invalid. Please run initialize script first."
-    );
-    return;
-  }
+  const usdcMint = new anchor.web3.PublicKey(
+    "7ggkvgP7jijLpQBV5GXcqugTMrc2JqDi9tiCH36SVg7A"
+  );
 
   // Derive PDA addresses
   const [faucetStateAddress] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -139,8 +120,23 @@ async function main() {
 
   // Define deposit amount (default to 5000 USDC)
   const args = process.argv.slice(2);
-  const depositAmount =
-    args.length > 0 ? parseInt(args[0]) * 1_000_000 : 5_000_000_000; // 5000 USDC with 6 decimals
+  let depositAmount: number;
+
+  if (args.length === 0) {
+    console.log("No amount specified. Using default amount of 5000 USDC.");
+    depositAmount = 5_000_000_000; // 5000 USDC with 6 decimals
+  } else {
+    const amount = parseFloat(args[0]);
+    if (isNaN(amount) || amount <= 0) {
+      console.error(
+        "Error: Please provide a valid positive number for the deposit amount."
+      );
+      console.log("Usage: ts-node scripts/deposit_usdc.ts [amount]");
+      console.log("Example: ts-node scripts/deposit_usdc.ts 1000");
+      process.exit(1);
+    }
+    depositAmount = amount * 1_000_000; // Convert to USDC decimals (6)
+  }
 
   console.log(`Depositing ${depositAmount / 1_000_000} USDC...`);
 
